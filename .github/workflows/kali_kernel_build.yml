@@ -27,7 +27,7 @@ jobs:
 
       - name: Build kernel
         run: |
-          rm -f $PWD/clang/bin/as
+          rm -f $PWD/clang/bin/as $PWD/clang/bin/ld
           export PATH=$PWD/clang/bin:$PATH
           export ARCH=arm64
           export SUBARCH=arm64

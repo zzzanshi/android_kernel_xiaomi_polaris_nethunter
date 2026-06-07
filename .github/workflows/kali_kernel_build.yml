@@ -1,0 +1,41 @@
+name: Build Kernel
+
+on:
+  push:
+    branches: [ lineage-21 ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4with:
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev python3 python-is-python3
+
+      - name: Download Clang
+        run: |
+          mkdir -p clang
+          wget -q https://github.com/ZyCromerZ/Clang/releases/download/20.0.0git-20250101-release/Clang-20.0.0git-20250101.tar.gz
+          tar -xf Clang-20.0.0git-20250101.tar.gz -C clang
+
+      - name: Build kernel
+        run: |
+          export PATH=$PWD/clang/bin:$PATH
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make O=out ARCH=arm64 CC=clang polaris-miku_defconfig
+          make O=out ARCH=arm64 CC=clang -j$(nproc)
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-Image
+          path: out/arch/arm64/boot/Image.gz-dtb

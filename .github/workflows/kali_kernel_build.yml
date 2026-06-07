@@ -38,8 +38,47 @@ jobs:
           make O=out ARCH=arm64 CC=clang LD=aarch64-linux-gnu-ld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip polaris-miku_defconfig
           make O=out ARCH=arm64 CC=clang LD=aarch64-linux-gnu-ld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip KCFLAGS="-w" -j$(nproc)
 
+      - name: Package NetHunter kernel zip
+        run: |
+          git clone --depth=1 --branch=2024.3 https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project.git
+
+          mkdir -p kali-nethunter-project/nethunter-installer/devices/thirteen/polaris
+          mkdir -p kali-nethunter-project/nethunter-installer/devices/thirteen/polaris/modules/system/lib/modules
+
+          cat > kali-nethunter-project/nethunter-installer/devices/devices.cfg <<'EOF'
+          # Xiaomi Mix 2s / polaris
+          [polaris]
+          author = "Takaken"
+          arch = arm64
+          version = "docker-cgroup"
+          flasher = anykernel
+          modules = 0
+          slot_device = 0
+          block = /dev/block/bootdevice/by-name/boot
+          devicenames = polaris,mix2s
+          EOF
+
+          cp out/arch/arm64/boot/Image.gz-dtb kali-nethunter-project/nethunter-installer/devices/thirteen/polaris/Image.gz-dtb
+
+          if [ -f out/arch/arm64/boot/Image ]; then
+            cp out/arch/arm64/boot/Image kali-nethunter-project/nethunter-installer/devices/thirteen/polaris/Image
+          fi
+
+          if [ -f out/arch/arm64/boot/Image.gz ]; then
+            cp out/arch/arm64/boot/Image.gz kali-nethunter-project/nethunter-installer/devices/thirteen/polaris/Image.gz
+          fi
+
+          cd kali-nethunter-project/nethunter-installer
+          python3 build.py -d polaris --thirteen --kernel
+
       - name: Upload Image
         uses: actions/upload-artifact@v4
         with:
           name: kernel-Image
           path: out/arch/arm64/boot/Image.gz-dtb
+
+      - name: Upload flashable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: polaris-nethunter-kernel-zip
+          path: kali-nethunter-project/nethunter-installer/*.zip
